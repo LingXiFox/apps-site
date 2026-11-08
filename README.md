@@ -6,7 +6,7 @@ The site is a static, four-language marketing and support site. It has no client
 
 ## Live
 
-- Production domain: <https://apps.lingxifox.cn/> (custom domain attached; DNS verification is pending)
+- Production domain: <https://apps.lingxifox.cn/> (live; custom domain active)
 - Cloudflare Pages: <https://lingxifox-apps.pages.dev/>
 - Repository: <https://github.com/LingXiFox/apps-site>
 
@@ -107,15 +107,22 @@ A GitHub Actions deployment is intentionally not checked in: the repository has 
 
 ## Custom domain
 
-The custom domain `apps.lingxifox.cn` is attached to the Pages project. DNS is managed at Aliyun; do not change the root nameservers, existing records, or ICP filing.
+The custom domain `apps.lingxifox.cn` is active and serves the Pages deployment. DNS is managed at Aliyun; do not change the root nameservers, existing records, or ICP filing.
 
-Create this record in the Aliyun DNS console:
+Current DNS answers A records to Aliyun ESA, which fronts the Pages deployment. That is a working China-facing edge setup, not a direct CNAME to Pages. Verify with:
+
+```bash
+dig +short apps.lingxifox.cn CNAME
+dig +short apps.lingxifox.cn A
+```
+
+If you want direct Cloudflare Pages DNS instead, remove or disable the Aliyun ESA acceleration domain for `apps`, then create this record in the Aliyun DNS console:
 
 | Type | Host | Value | TTL |
 | --- | --- | --- | --- |
 | CNAME | `apps` | `lingxifox-apps.pages.dev` | Auto (or 600 s) |
 
-Cloudflare shows the domain as `pending` with `CNAME record not set` until that record resolves. Certificate issuance starts automatically after validation. Do not point the CNAME at an individual deployment hash such as `e3a07936.lingxifox-apps.pages.dev`.
+Do not point the CNAME at an individual deployment hash such as `e3a07936.lingxifox-apps.pages.dev`. A CNAME cannot coexist with an A/AAAA record on the same host.
 
 ## Editing content
 
