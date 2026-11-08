@@ -1,0 +1,15 @@
+# Generated output
+dist/
+
+# Local tooling
+.playwright-cli/
+output/
+.wrangler/
+node_modules/
+
+# Python
+__pycache__/
+*.py[cod]
+
+# macOS
+.DS_Store
