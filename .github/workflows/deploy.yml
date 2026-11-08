@@ -1,0 +1,56 @@
+name: Deploy site
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build and deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_PAGES_PROJECT: lingxifox-apps
+      GITHUB_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install cf CLI
+        run: npm install --global --no-fund --no-audit cf@1.0.0-beta.12
+
+      - name: Build static site
+        run: python3 scripts/build.py
+
+      - name: Verify BLAKE3 implementation
+        run: python3 scripts/blake3.py
+
+      - name: Deploy to Cloudflare Pages
+        run: |
+          python3 scripts/deploy_pages.py \
+            --dist dist \
+            --project "${CLOUDFLARE_PAGES_PROJECT}" \
+            --branch main \
+            --commit-hash "${GITHUB_SHA}" \
+            --commit-message "${GITHUB_COMMIT_MESSAGE:-Manual deployment}"

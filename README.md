@@ -45,9 +45,13 @@ apps-site/
 │   ├── zh_hant.py
 │   ├── en.py
 │   └── ja.py
+├── .github/workflows/
+│   └── deploy.yml        # build, verify, deploy on push to main
 ├── scripts/
 │   ├── build.py          # static generator + link/content validation
-│   └── deploy.sh         # build, then deploy to Cloudflare Pages
+│   ├── blake3.py         # dependency-free BLAKE3 used by Pages uploads
+│   ├── deploy_pages.py   # Cloudflare Pages Direct Upload API client
+│   └── deploy.sh         # local build and deploy wrapper
 ├── dist/                 # generated output (ignored by Git)
 └── README.md
 ```
@@ -83,13 +87,27 @@ Open <http://127.0.0.1:8788/>. The 404 page is served as `/404.html` by this sim
 
 The Cloudflare Pages project is `lingxifox-apps` and uses **Direct Upload**. There is no Git-connected build.
 
+### Automatic deployment
+
+`.github/workflows/deploy.yml` runs on every push to `main` and on manual `workflow_dispatch`. It builds with `scripts/build.py`, verifies the BLAKE3 implementation, installs Node.js 22 and the official `cf` CLI, uploads changed assets through the Pages Direct Upload API, creates a production deployment on branch `main` with `cf pages deployments create`, waits for it to finish, and checks that both `https://lingxifox-apps.pages.dev/` and `https://apps.lingxifox.cn/` return the exact bytes of the new `dist/index.html`. A failed build, upload, deployment, or verification exits non-zero.
+
+The workflow uses a repository secret named `CLOUDFLARE_API_TOKEN`:
+
+1. In the Cloudflare dashboard, create a **custom API token** with account permission **Cloudflare Pages: Edit**. Reading Pages is sufficient to inspect, but deployment needs Edit.
+2. Restrict it to the LingXiFox account if the dashboard offers that scope.
+3. Store it without printing it:
+
 ```bash
-export CLOUDFLARE_ACCOUNT_ID=09c58146832fbea01ce12d3e316a1d4d
-npx wrangler login
-./scripts/deploy.sh
+gh secret set CLOUDFLARE_API_TOKEN -R LingXiFox/apps-site
 ```
 
-Or use a scoped API token instead of an interactive login:
+Optionally store `CLOUDFLARE_ACCOUNT_ID` as a second secret; otherwise the workflow and scripts use `09c58146832fbea01ce12d3e316a1d4d`. The token is only read from the environment and is never written to the repository or printed by the scripts.
+
+`cf pages deploy` does not implement legacy Pages Direct Upload. The official `cf pages deployments create` command does accept a Direct Upload manifest and the `_headers` file, so the workflow creates deployments with `cf` and uses `scripts/deploy_pages.py` for the upload-token exchange, missing-asset upload, polling, and byte verification. It does not use Wrangler.
+
+### Local deployment
+
+Requirements: Python 3.12, Node.js 22 or newer, and the official `cf` CLI (`npm install --global cf@1.0.0-beta.12`).
 
 ```bash
 export CLOUDFLARE_API_TOKEN=...
@@ -97,32 +115,26 @@ export CLOUDFLARE_ACCOUNT_ID=09c58146832fbea01ce12d3e316a1d4d
 ./scripts/deploy.sh
 ```
 
-The script builds, checks that Wrangler is authenticated when no token is supplied, and deploys `dist/` to the production branch `main`. The one-line equivalent is:
+`scripts/deploy.sh` builds, runs the BLAKE3 self-test, deploys `dist/` to the production branch `main`, and verifies both hostnames. To deploy a prebuilt directory without rebuilding:
 
 ```bash
-npx wrangler pages deploy dist --project-name lingxifox-apps --branch main --commit-dirty=true
+python3 scripts/deploy_pages.py --dist dist --project lingxifox-apps --branch main
 ```
 
-A GitHub Actions deployment is intentionally not checked in: the repository has no durable Cloudflare API token configured, and an OAuth session must not be stored as a GitHub secret. Add a scoped `Pages:Edit` token as `CLOUDFLARE_API_TOKEN` plus `CLOUDFLARE_ACCOUNT_ID` if automatic deployment is required later.
+The uploader prints only counts, deployment status, and verification digests. Assets already present in Pages are not uploaded again. HTTP 429 and 5xx responses are retried with backoff; a failed upload, deployment, or content check returns a non-zero exit status.
 
 ## Custom domain
 
-The custom domain `apps.lingxifox.cn` is active and serves the Pages deployment. DNS is managed at Aliyun; do not change the root nameservers, existing records, or ICP filing.
+The custom domain `apps.lingxifox.cn` is active and serves the Pages deployment. It currently resolves through a direct `CNAME` to `lingxifox-apps.pages.dev`. The DNS zone is managed outside this repository. Do not change the root nameservers, the existing records, or the ICP filing.
 
-Current DNS answers A records to Aliyun ESA, which fronts the Pages deployment. That is a working China-facing edge setup, not a direct CNAME to Pages. Verify with:
+Verify the live path:
 
 ```bash
 dig +short apps.lingxifox.cn CNAME
-dig +short apps.lingxifox.cn A
+curl -I https://apps.lingxifox.cn/
 ```
 
-If you want direct Cloudflare Pages DNS instead, remove or disable the Aliyun ESA acceleration domain for `apps`, then create this record in the Aliyun DNS console:
-
-| Type | Host | Value | TTL |
-| --- | --- | --- | --- |
-| CNAME | `apps` | `lingxifox-apps.pages.dev` | Auto (or 600 s) |
-
-Do not point the CNAME at an individual deployment hash such as `e3a07936.lingxifox-apps.pages.dev`. A CNAME cannot coexist with an A/AAAA record on the same host.
+Expected CNAME target: `lingxifox-apps.pages.dev.`. The domain is attached to the Pages project as a custom domain; Cloudflare issues and renews its certificate. Do not point the CNAME at an individual deployment hash such as `491c8199.lingxifox-apps.pages.dev`.
 
 ## Editing content
 
