@@ -140,7 +140,7 @@ Expected CNAME target: `lingxifox-apps.pages.dev.`. The domain is attached to th
 
 Edit the matching file under `content/`. Keep the same top-level keys across all four files: the generator reads `meta`, `nav`, `common`, `footer`, `home`, `texel`, `privacy`, `support`, and `notfound` from each language. The `prefix` value controls the URL prefix.
 
-Product facts live in the same dictionaries, including the 5-photos-per-day free quota, 9-photo batch limit, supported formats, Pro one-time purchase, and App Store availability. Do not add screenshots, prices, review status, or legal details that are not true.
+Product facts live in the same dictionaries, including the 5-photos-per-day free quota, 9-photo batch limit, supported formats, the four Pro plans (day pass, weekly, monthly, lifetime), the device trial, and App Store availability. Do not add screenshots, prices, review status, or legal details that are not true.
 
 ## Privacy
 
@@ -149,3 +149,7 @@ The site does not load analytics, advertising, fonts, or scripts from third part
 ## License
 
 Site copy and brand assets are © 2026 LingXiFox. No license is granted for the LingXiFox name, the Texel name, or the app icon.
+
+## Texel 1.9.1 content update (2026-11-13)
+
+All four languages distinguish the existing App Store release from version 1.9.1 awaiting submission. Product and support copy describe the four Pro plans, automatic renewal, restoration, the optional no-charge device trial, and Live Photo modes. The privacy policy uses `com.lingxifox.Texel` and describes local vault/history retention and Keychain trial records. New plans are described as available after 1.9.1 approval; no unapproved release or invented price is advertised.

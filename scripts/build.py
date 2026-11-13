@@ -19,7 +19,7 @@ SITE_URL = "https://apps.lingxifox.cn"
 SITE_NAME = "LingXiFox Apps"
 ISSUES_URL = "https://github.com/LingXiFox/LingXiStyle/issues"
 REPO_URL = "https://github.com/LingXiFox/apps-site"
-TODAY = date(2026, 11, 8)
+TODAY = date(2026, 11, 13)
 
 sys.path.insert(0, str(CONTENT))
 import zh_hans  # noqa: E402
@@ -479,7 +479,7 @@ def texel_body(lang: dict) -> str:
       </article>
       <article class="price-card featured">
         <p class="price-label">{esc(t['pricing_pro_title'])}</p>
-        <p class="price-value">∞ <small>forever</small></p>
+        <p class="price-value">∞</p>
         <p>{esc(t['pricing_pro_body'])}</p>
         <a class="text-link" href="{esc(page_path(lang, 'support'))}">{esc(lang['common']['read_support'])} {icon('arrow')}</a>
       </article>
